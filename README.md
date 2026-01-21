@@ -19,8 +19,6 @@ Outside of this repo, you can start a new project with this template using [C3](
 npm create cloudflare@latest -- --template=cloudflare/templates/openauth-template
 ```
 
-A live public deployment of this template is available at [https://openauth-template.templates.workers.dev](https://openauth-template.templates.workers.dev)
-
 ## Setup Steps
 
 1. Install the project dependencies with a package manager of your choice:
