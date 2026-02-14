@@ -15,7 +15,7 @@ export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 
-		// Redirect root to authorize with redirect_uri to user.soeparnocorp (testing)
+		// Redirect root to authorize with redirect_uri to https://room.soeparnocorp.workers.dev
 		if (url.pathname === "/") {
 			url.searchParams.set("redirect_uri", "https://room.soeparnocorp.workers.dev");
 			url.searchParams.set("client_id", "your-client-id");
