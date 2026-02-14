@@ -24,7 +24,7 @@ export default {
 			return Response.redirect(url.toString());
 		}
 
-		// Handle callback - redirect to user.soeparnocorp (testing)
+		// Handle callback - redirect to room.soeparnocorp (testing)
 		if (url.pathname === "/callback") {
 			return Response.redirect("https://room.soeparnocorp.workers.dev");
 		}
