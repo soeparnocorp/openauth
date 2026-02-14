@@ -17,7 +17,7 @@ export default {
 
 		// Redirect root to authorize with redirect_uri to user.soeparnocorp (testing)
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://user.soeparnocorp.workers.dev");
+			url.searchParams.set("redirect_uri", "https://room.soeparnocorp.workers.dev");
 			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
@@ -26,7 +26,7 @@ export default {
 
 		// Handle callback - redirect to user.soeparnocorp (testing)
 		if (url.pathname === "/callback") {
-			return Response.redirect("https://user.soeparnocorp.workers.dev");
+			return Response.redirect("https://room.soeparnocorp.workers.dev");
 		}
 
 		return issuer({
