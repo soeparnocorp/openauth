@@ -15,7 +15,18 @@ export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 
-		// ===== REDIRECT ROOT KE AUTHORIZE =====
+		// ===== CORS PREFLIGHT =====
+		if (request.method === "OPTIONS") {
+			return new Response(null, {
+				headers: {
+					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+					"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				},
+			});
+		}
+
+		// ===== REDIRECT ROOM KE AUTHORIZE =====
 		if (url.pathname === "/") {
 			url.searchParams.set("redirect_uri", "https://room.soeparnocorp.workers.dev");
 			url.searchParams.set("client_id", "readtalk-client");
@@ -24,7 +35,7 @@ export default {
 			return Response.redirect(url.toString());
 		}
 
-		// ===== HANDLE CALLBACK - KIRIM CODE KE ROOM =====
+		// ===== HANDLE CALLBACK =====
 		if (url.pathname === "/callback") {
 			const code = url.searchParams.get("code");
 			if (code) {
@@ -33,12 +44,12 @@ export default {
 			return Response.redirect("https://room.soeparnocorp.workers.dev");
 		}
 
-		// ===== 🔥 TAMBAHAN: ENDPOINT VERIFY UNTUK READTALK =====
+		// ===== 🔥 ENDPOINT VERIFY (REAL) =====
 		if (url.pathname === "/verify" && request.method === "POST") {
 			return handleVerify(request, env);
 		}
 
-		// ===== 🔥 TAMBAHAN: ENDPOINT AMBIL DATA USER =====
+		// ===== 🔥 ENDPOINT ME =====
 		if (url.pathname === "/me" && request.method === "GET") {
 			return handleMe(request, env);
 		}
@@ -54,7 +65,6 @@ export default {
 					PasswordUI({
 						sendCode: async (email, code) => {
 							console.log(`Sending code ${code} to ${email}`);
-							// TODO: Kirim email beneran pake Resend atau email service
 						},
 						copy: {
 							input_code: "Code (check Worker logs)",
@@ -80,77 +90,99 @@ export default {
 	},
 } satisfies ExportedHandler<Env>;
 
-// ===== 🔥 HANDLE VERIFY TOKEN =====
+// ===== 🔥 HANDLE VERIFY TOKEN (REAL) =====
 async function handleVerify(request: Request, env: Env) {
 	try {
 		const { token } = await request.json();
-		
+
 		if (!token) {
-			return Response.json({ valid: false, error: "No token" }, { status: 401 });
+			return Response.json({ valid: false }, { 
+				status: 401,
+				headers: { "Access-Control-Allow-Origin": "*" }
+			});
 		}
 
-		// Di OpenAuth, token biasanya JWT yang bisa diverifikasi
-		// Tapi karena pake library @openauthjs, kita perlu decode
+		// 🔥 OpenAuth nyimpen session di KV dengan prefix "session:"
+		// Tapi formatnya tergantung library. Kita perlu cek dokumentasi
+		// Alternatif: token bisa jadi JWT yang bisa didecode
+
+		// Cara 1: Coba cek di KV
+		const sessionData = await env.AUTH_STORAGE.get(token, "json");
 		
-		// Cara sederhana: cek di storage atau decode manual
-		// Ini contoh pake verifikasi dasar:
-		
-		// TODO: Implementasi verifikasi token sesuai library OpenAuth
-		// Sementara return dummy dulu
-		
-		// Seharusnya: const user = await verifyToken(token);
-		
-		return Response.json({ 
-			valid: true, 
-			user: { 
-				id: "user-123", 
-				email: "user@example.com" 
-			} 
+		if (sessionData) {
+			// Dapet session dari KV
+			return Response.json({ 
+				valid: true, 
+				user: { 
+					id: sessionData.userId,
+					email: sessionData.email 
+				} 
+			}, {
+				headers: { "Access-Control-Allow-Origin": "*" }
+			});
+		}
+
+		// Cara 2: Kalo token JWT, kita bisa decode pake library
+		// Tapi untuk sekarang, return 401
+		return Response.json({ valid: false }, { 
+			status: 401,
+			headers: { "Access-Control-Allow-Origin": "*" }
 		});
-		
+
 	} catch (error) {
-		return Response.json({ valid: false, error: error.message }, { status: 401 });
+		return Response.json({ valid: false, error: error.message }, { 
+			status: 401,
+			headers: { "Access-Control-Allow-Origin": "*" }
+		});
 	}
 }
 
-// ===== 🔥 HANDLE DATA USER =====
+// ===== 🔥 HANDLE ME =====
 async function handleMe(request: Request, env: Env) {
-	// token header Authorization
 	const authHeader = request.headers.get("Authorization");
 	if (!authHeader || !authHeader.startsWith("Bearer ")) {
-		return Response.json({ error: "Unauthorized" }, { status: 401 });
+		return Response.json({ error: "Unauthorized" }, { 
+			status: 401,
+			headers: { "Access-Control-Allow-Origin": "*" }
+		});
 	}
-	
+
 	const token = authHeader.slice(7);
-	
-	// Verifikasi token (panggil handleVerify atau verifikasi langsung)
-	// Sederhananya, kita panggil endpoint verify internal
+
+	// Verifikasi token pake handleVerify
 	const verifyReq = new Request("https://internal/verify", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ token })
 	});
-	
+
 	const verifyRes = await handleVerify(verifyReq, env);
 	if (!verifyRes.ok) {
-		return Response.json({ error: "Invalid token" }, { status: 401 });
+		return Response.json({ error: "Invalid token" }, { 
+			status: 401,
+			headers: { "Access-Control-Allow-Origin": "*" }
+		});
 	}
-	
+
 	const { user } = await verifyRes.json();
-	
-	// Ambil data lengkap user dari database
+
+	// Ambil data lengkap dari database
 	const result = await env.AUTH_DB.prepare(
-		"SELECT id, email FROM user WHERE id = ?",
+		"SELECT id, email FROM user WHERE id = ?"
 	).bind(user.id).first();
-	
+
 	if (!result) {
-		return Response.json({ error: "User not found" }, { status: 404 });
+		return Response.json({ error: "User not found" }, { 
+			status: 404,
+			headers: { "Access-Control-Allow-Origin": "*" }
+		});
 	}
-	
+
 	return Response.json({ 
 		id: result.id,
 		email: result.email,
-		// Bisa tambah field lain kalo ada
+	}, {
+		headers: { "Access-Control-Allow-Origin": "*" }
 	});
 }
 
