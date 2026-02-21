@@ -15,7 +15,7 @@ export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 
-		// Redirect root to authorize with redirect_uri to https://account.soeparnocorp.workers.dev
+		// Redirect root to authorize
 		if (url.pathname === "/") {
 			url.searchParams.set("redirect_uri", "https://account.soeparnocorp.workers.dev");
 			url.searchParams.set("client_id", "your-client-id");
@@ -24,9 +24,10 @@ export default {
 			return Response.redirect(url.toString());
 		}
 
-		// Handle callback - redirect to account.soeparnocorp
+		// Handle callback - redirect with code
 		if (url.pathname === "/callback") {
-			return Response.redirect("https://account.soeparnocorp.workers.dev");
+			const code = url.searchParams.get("code");
+			return Response.redirect(`https://account.soeparnocorp.workers.dev?code=${code}`);
 		}
 
 		return issuer({
