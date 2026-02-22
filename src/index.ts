@@ -17,7 +17,7 @@ export default {
 
 		// Redirect root to authorize
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://app-readtalk.pages.dev/auth");
+			url.searchParams.set("redirect_uri", "https://app-readtalk.pages.dev/");
 			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
@@ -27,7 +27,7 @@ export default {
 		// Handle callback - redirect with code
 		if (url.pathname === "/callback") {
 			const code = url.searchParams.get("code");
-			return Response.redirect(`https://app-readtalk.pages.dev/auth?code=${code}`);
+			return Response.redirect(`https://app-readtalk.pages.dev/?code=${code}`);
 		}
 
 		return issuer({
