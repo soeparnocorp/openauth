@@ -17,7 +17,7 @@ export default {
 
 		if (url.pathname === "/") {
 			url.searchParams.set("redirect_uri", "https://app-readtalk.pages.dev/api/auth/callback");
-			url.searchParams.set("client_id", "readtalk-pages");
+			url.searchParams.set("client_id", "app-readtalk-pages");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
