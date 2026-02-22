@@ -17,7 +17,7 @@ export default {
 
 		// Redirect root to authorize
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://app-readtalk.pages.dev");
+			url.searchParams.set("redirect_uri", "https://app-readtalk.pages.dev/authentication");
 			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
