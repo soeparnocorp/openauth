@@ -15,12 +15,19 @@ export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 
+		// Redirect root to authorize
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://app-readtalk.pages.dev/api/auth/callback");
-			url.searchParams.set("client_id", "app-readtalk-pages");
+			url.searchParams.set("redirect_uri", "https://app-readtalk.pages.dev");
+			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
+		}
+
+		// Handle callback - redirect with code
+		if (url.pathname === "/callback") {
+			const code = url.searchParams.get("code");
+			return Response.redirect(`https://app-readtalk.pages.dev?code=${code}`);
 		}
 
 		return issuer({
