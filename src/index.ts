@@ -5,9 +5,7 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
-// This value should be shared between the OpenAuth server Worker and other
-// client Workers that you connect to it, so the types and schema validation are
-// consistent.
+// Subjects schema
 const subjects = createSubjects({
 	user: object({
 		id: string(),
@@ -16,27 +14,31 @@ const subjects = createSubjects({
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
-		// This top section is just for demo purposes. In a real setup another
-		// application would redirect the user to this Worker to be authenticated,
-		// and after signing in or registering the user would be redirected back to
-		// the application they came from. In our demo setup there is no other
-		// application, so this Worker needs to do the initial redirect and handle
-		// the callback redirect on completion.
 		const url = new URL(request.url);
+
+		// initial redirect to authorize
 		if (url.pathname === "/") {
 			url.searchParams.set("redirect_uri", url.origin + "/callback");
 			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
-		} else if (url.pathname === "/callback") {
-			return Response.json({
-				message: "OAuth flow complete!",
-				params: Object.fromEntries(url.searchParams.entries()),
-			});
+		} 
+		// === MODIFIKASI: callback sekarang redirect ke App.tsx Pages.dev ===
+		else if (url.pathname === "/callback") {
+			const code = url.searchParams.get("code");
+			const state = url.searchParams.get("state");
+
+			if (!code || !state) {
+				return new Response("Unknown state or missing code", { status: 400 });
+			}
+
+			return Response.redirect(
+				`https://id-readtalk.pages.dev/?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+			);
 		}
 
-		// The real OpenAuth server code starts here:
+		// OpenAuth server utama
 		return issuer({
 			storage: CloudflareStorage({
 				namespace: env.AUTH_STORAGE,
@@ -45,11 +47,7 @@ export default {
 			providers: {
 				password: PasswordProvider(
 					PasswordUI({
-						// eslint-disable-next-line @typescript-eslint/require-await
 						sendCode: async (email, code) => {
-							// This is where you would email the verification code to the
-							// user, e.g. using Resend:
-							// https://resend.com/docs/send-with-cloudflare-workers
 							console.log(`Sending code ${code} to ${email}`);
 						},
 						copy: {
@@ -77,6 +75,7 @@ export default {
 	},
 } satisfies ExportedHandler<Env>;
 
+// simpan atau buat user di DB
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
 	const result = await env.AUTH_DB.prepare(
 		`
@@ -84,10 +83,11 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
 		VALUES (?)
 		ON CONFLICT (email) DO UPDATE SET email = email
 		RETURNING id;
-		`,
+		`
 	)
 		.bind(email)
 		.first<{ id: string }>();
+
 	if (!result) {
 		throw new Error(`Unable to process user: ${email}`);
 	}
