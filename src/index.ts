@@ -24,13 +24,13 @@ export default {
 		// the callback redirect on completion.
 		const url = new URL(request.url);
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://user.soeparnocorp.workers.dev");
+			url.searchParams.set("redirect_uri", "https://account.soeparnocorp.workers.dev");
 			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
 		} else if (url.pathname === "/callback") {
-			return Response.redirect("https://user.soeparnocorp.workers.dev");
+			return Response.redirect("https://account.soeparnocorp.workers.dev");
 		}
 
 		// The real OpenAuth server code starts here:
