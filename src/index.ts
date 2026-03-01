@@ -24,16 +24,13 @@ export default {
 		// the callback redirect on completion.
 		const url = new URL(request.url);
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", url.origin + "/callback");
+			url.searchParams.set("redirect_uri", "https://id-readtalk.pages.dev");
 			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
 		} else if (url.pathname === "/callback") {
-			return Response.json({
-				message: "OAuth flow complete!",
-				params: Object.fromEntries(url.searchParams.entries()),
-			});
+			return Response.redirect("https://id-readtalk.pages.dev");
 		}
 
 		// The real OpenAuth server code starts here:
@@ -47,9 +44,6 @@ export default {
 					PasswordUI({
 						// eslint-disable-next-line @typescript-eslint/require-await
 						sendCode: async (email, code) => {
-							// This is where you would email the verification code to the
-							// user, e.g. using Resend:
-							// https://resend.com/docs/send-with-cloudflare-workers
 							console.log(`Sending code ${code} to ${email}`);
 						},
 						copy: {
@@ -61,11 +55,11 @@ export default {
 			theme: {
 				title: "READTalk - OpenAuth",
 				primary: "#ff0000",
-				favicon: "https://workers.cloudflare.com//favicon.ico",
+				favicon: "https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/public/favicon.ico",
 				logo: {
-					dark: "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/db1e5c92-d3a6-4ea9-3e72-155844211f00/public",
+					dark: "https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/src/logo-dark.png",
 					light:
-						"https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/fa5a3023-7da9-466b-98a7-4ce01ee6c700/public",
+						"https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/src/logo-light.png",
 				},
 			},
 			success: async (ctx, value) => {
