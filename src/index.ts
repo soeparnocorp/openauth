@@ -5,9 +5,6 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
-// This value should be shared between the OpenAuth server Worker and other
-// client Workers that you connect to it, so the types and schema validation are
-// consistent.
 const subjects = createSubjects({
 	user: object({
 		id: string(),
@@ -16,32 +13,15 @@ const subjects = createSubjects({
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
-		// This top section is just for demo purposes. In a real setup another
-		// application would redirect the user to this Worker to be authenticated,
-		// and after signing in or registering the user would be redirected back to
-		// the application they came from. In our demo setup there is no other
-		// application, so this Worker needs to do the initial redirect and handle
-		// the callback redirect on completion.
 		const url = new URL(request.url);
+
+		// Optional: redirect root "/" to /authorize
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://chat.soeparnocorp.workers.dev");
-			url.searchParams.set("client_id", "your-client-id");
-			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
-			return Response.redirect(url.toString());
-		} else if (url.pathname === "/callback") {
-			return Response.redirect("https://chat.soeparnocorp.workers.dev");
+			return Response.redirect(url.toString(), 302);
 		}
 
-		//
-		return new Response(JSON.stringify({ id: userId }), {
-  headers: {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "https://chat.soeparnocorp",
-    "Access-Control-Allow-Credentials": "true"
-  }
-});
-		// The real OpenAuth server code starts here:
+		// OpenAuth server handling
 		return issuer({
 			storage: CloudflareStorage({
 				namespace: env.AUTH_STORAGE,
@@ -50,7 +30,6 @@ export default {
 			providers: {
 				password: PasswordProvider(
 					PasswordUI({
-						// eslint-disable-next-line @typescript-eslint/require-await
 						sendCode: async (email, code) => {
 							console.log(`Sending code ${code} to ${email}`);
 						},
@@ -66,15 +45,15 @@ export default {
 				favicon: "https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/public/favicon.ico",
 				logo: {
 					dark: "https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/src/logo-dark.png",
-					light:
-						"https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/src/logo-light.png",
+					light: "https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/src/logo-light.png",
 				},
 			},
 			success: async (ctx, value) => {
-				return ctx.subject("user", {
-					id: await getOrCreateUser(env, value.email),
-				});
+				const id = await getOrCreateUser(env, value.email);
+				return ctx.subject("user", { id });
 			},
+			// Redirect after successful login
+			callbackUrl: env.AUTH_CALLBACK, // <- pakai AUTH_CALLBACK dari wrangler
 		}).fetch(request, env, ctx);
 	},
 } satisfies ExportedHandler<Env>;
@@ -90,9 +69,7 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
 	)
 		.bind(email)
 		.first<{ id: string }>();
-	if (!result) {
-		throw new Error(`Unable to process user: ${email}`);
-	}
+	if (!result) throw new Error(`Unable to process user: ${email}`);
 	console.log(`Found or created user ${result.id} with email ${email}`);
 	return result.id;
 }
