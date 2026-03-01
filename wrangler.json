@@ -5,7 +5,7 @@
   "upload_source_maps": true,
 
   "vars": {
-    "AUTH_CALLBACK": "/auth"
+    "AUTH_CALLBACK": "/authorize"
   },
 
   "kv_namespaces": [
