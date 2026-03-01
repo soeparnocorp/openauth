@@ -30,7 +30,7 @@ export default {
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
 		} else if (url.pathname === "/callback") {
-			return Response.redirect("https://id-readtalk.pages.dev");
+			return Response.redirect("https://id-readtalk.pages.dev/authorize");
 		}
 
 		// The real OpenAuth server code starts here:
