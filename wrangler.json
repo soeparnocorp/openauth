@@ -5,7 +5,7 @@
   "upload_source_maps": true,
 
   "vars": {
-    "AUTH_CALLBACK": "/chat"
+    "AUTH_CALLBACK": "/auth"
   },
 
   "kv_namespaces": [
