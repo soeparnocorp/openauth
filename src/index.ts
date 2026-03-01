@@ -59,9 +59,9 @@ export default {
 				),
 			},
 			theme: {
-				title: "OpenAuth",
+				title: "READTalk - Auth",
 				primary: "#ff0000",
-				favicon: "https://raw.githubusercontent.com/soeparnocorp/openauth/refs/heads/main/public/favicon.ico",
+				favicon: "https://id-readtalk.pages.dev/vite.svg",
 				logo: {
 					dark: "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/db1e5c92-d3a6-4ea9-3e72-155844211f00/public",
 					light:
