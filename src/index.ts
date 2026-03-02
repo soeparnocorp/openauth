@@ -15,11 +15,14 @@ export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://id-readtalk.pages.dev/auth/callback");
+			url.searchParams.set("redirect_uri", url.origin + "/callback");
 			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
+		} else if (url.pathname === "/callback") {
+			const code = url.searchParams.get("code")
+			return Response.redirect(`https://id-readtalk.pages.dev/auth/callback?code=${code}`)
 		}
 
 		return issuer({
@@ -45,7 +48,8 @@ export default {
 				favicon: "https://id-readtalk.pages.dev/vite.svg",
 				logo: {
 					dark: "https://id-readtalk.pages.dev/vite.svg",
-					light: "https://id-readtalk.pages.dev/vite.svg",
+					light:
+						"https://id-readtalk.pages.dev/vite.svg",
 				},
 			},
 			success: async (ctx, value) => {
