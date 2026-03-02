@@ -5,6 +5,7 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
+// Shared subject type
 const subjects = createSubjects({
 	user: object({
 		id: string(),
@@ -12,23 +13,47 @@ const subjects = createSubjects({
 });
 
 export default {
-	fetch(request: Request, env: Env, ctx: ExecutionContext) {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
-		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", url.origin + "/callback");
-			url.searchParams.set("client_id", "your-client-id");
-			url.searchParams.set("response_type", "code");
-			url.pathname = "/authorize";
-			return Response.redirect(url.toString());
-		} else if (url.pathname === "/callback") {
-			const code = url.searchParams.get("code")
-			return Response.redirect(`https://id-readtalk.pages.dev/auth/callback?code=${code}`)
+
+		// Jika dipanggil langsung oleh Pages function
+		if (url.pathname === "/api/token" && request.method === "POST") {
+			// Contoh: Pages function panggil OpenAuth via fetch POST
+			const body = await request.json().catch(() => ({}));
+			const email = body.email || body.user?.email || "demo@readtalk.dev";
+
+			// Gunakan OpenAuth issuer untuk generate code / subject
+			const authResponse = await issuer({
+				storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
+				subjects,
+				providers: {
+					password: PasswordProvider(
+						PasswordUI({
+							sendCode: async (email, code) => {
+								console.log(`Sending code ${code} to ${email}`);
+							},
+							copy: { input_code: "Code (check Worker logs)" },
+						}),
+					),
+				},
+			}).success(ctx, { email });
+
+			return new Response(JSON.stringify(authResponse), { status: 200 });
 		}
 
+		// Optional: demo UI / test flow
+		if (url.pathname === "/") {
+			return Response.redirect(url.origin + "/authorize");
+		} else if (url.pathname === "/callback") {
+			return Response.json({
+				message: "OpenAuth flow complete!",
+				params: Object.fromEntries(url.searchParams.entries()),
+			});
+		}
+
+		// Fallback: panggil normal issuer handler
 		return issuer({
-			storage: CloudflareStorage({
-				namespace: env.AUTH_STORAGE,
-			}),
+			storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
 			subjects,
 			providers: {
 				password: PasswordProvider(
@@ -36,31 +61,15 @@ export default {
 						sendCode: async (email, code) => {
 							console.log(`Sending code ${code} to ${email}`);
 						},
-						copy: {
-							input_code: "Code (check Worker logs)",
-						},
+						copy: { input_code: "Code (check Worker logs)" },
 					}),
 				),
-			},
-			theme: {
-				title: "READTalk - Auth",
-				primary: "#ff0000",
-				favicon: "https://id-readtalk.pages.dev/vite.svg",
-				logo: {
-					dark: "https://id-readtalk.pages.dev/vite.svg",
-					light:
-						"https://id-readtalk.pages.dev/vite.svg",
-				},
-			},
-			success: async (ctx, value) => {
-				return ctx.subject("user", {
-					id: await getOrCreateUser(env, value.email),
-				});
 			},
 		}).fetch(request, env, ctx);
 	},
 } satisfies ExportedHandler<Env>;
 
+// Fungsi helper tetap sama
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
 	const result = await env.AUTH_DB.prepare(
 		`
@@ -72,9 +81,7 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
 	)
 		.bind(email)
 		.first<{ id: string }>();
-	if (!result) {
-		throw new Error(`Unable to process user: ${email}`);
-	}
+	if (!result) throw new Error(`Unable to process user: ${email}`);
 	console.log(`Found or created user ${result.id} with email ${email}`);
 	return result.id;
 }
