@@ -5,6 +5,9 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
+// This value should be shared between the OpenAuth server Worker and other
+// client Workers that you connect to it, so the types and schema validation are
+// consistent.
 const subjects = createSubjects({
 	user: object({
 		id: string(),
@@ -13,11 +16,16 @@ const subjects = createSubjects({
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
+		// This top section is just for demo purposes. In a real setup another
+		// application would redirect the user to this Worker to be authenticated,
+		// and after signing in or registering the user would be redirected back to
+		// the application they came from. In our demo setup there is no other
+		// application, so this Worker needs to do the initial redirect and handle
+		// the callback redirect on completion.
 		const url = new URL(request.url);
-		
 		if (url.pathname === "/") {
-			url.searchParams.set("redirect_uri", "https://id-readtalk.pages.dev/callback");
-			url.searchParams.set("client_id", "id-readtalk");
+			url.searchParams.set("redirect_uri", url.origin + "/callback");
+			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
@@ -28,21 +36,21 @@ export default {
 			});
 		}
 
+		// The real OpenAuth server code starts here:
 		return issuer({
 			storage: CloudflareStorage({
 				namespace: env.AUTH_STORAGE,
 			}),
 			subjects,
-			// 🔥 INI KUNCINYA! Registrasi client
-			clients: [{
-				id: "id-readtalk",
-				redirectUris: ["https://id-readtalk.pages.dev/callback"]
-			}],
 			providers: {
 				password: PasswordProvider(
 					PasswordUI({
+						// eslint-disable-next-line @typescript-eslint/require-await
 						sendCode: async (email, code) => {
-							console.log(`🔐 Login code for ${email}: ${code}`);
+							// This is where you would email the verification code to the
+							// user, e.g. using Resend:
+							// https://resend.com/docs/send-with-cloudflare-workers
+							console.log(`Sending code ${code} to ${email}`);
 						},
 						copy: {
 							input_code: "Code (check Worker logs)",
@@ -56,7 +64,8 @@ export default {
 				favicon: "https://id-readtalk.pages.dev/vite.svg",
 				logo: {
 					dark: "https://id-readtalk.pages.dev/vite.svg",
-					light: "https://id-readtalk.pages.dev/vite.svg",
+					light:
+						"https://id-readtalk.pages.dev/vite.svg",
 				},
 			},
 			success: async (ctx, value) => {
@@ -70,11 +79,18 @@ export default {
 
 async function getOrCreateUser(env: Env, email: string): Promise<string> {
 	const result = await env.AUTH_DB.prepare(
-		`INSERT INTO user (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET email = email RETURNING id;`
+		`
+		INSERT INTO user (email)
+		VALUES (?)
+		ON CONFLICT (email) DO UPDATE SET email = email
+		RETURNING id;
+		`,
 	)
 		.bind(email)
 		.first<{ id: string }>();
-	
-	if (!result) throw new Error(`Unable to process user: ${email}`);
+	if (!result) {
+		throw new Error(`Unable to process user: ${email}`);
+	}
+	console.log(`Found or created user ${result.id} with email ${email}`);
 	return result.id;
 }
