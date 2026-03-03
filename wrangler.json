@@ -3,8 +3,8 @@
   "main": "src/index.ts",
   "name": "openauth",
   "upload_source_maps": true,
-  
-
+}
+  ],
   "kv_namespaces": [
     {
       "binding": "AUTH_STORAGE",
