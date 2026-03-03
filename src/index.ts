@@ -5,22 +5,27 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 
-// EMAIL SUBJECT
+// This value should be shared between the OpenAuth server Worker and other
+// client Workers that you connect to it, so the types and schema validation are
+// consistent.
 const subjects = createSubjects({
 	user: object({
 		id: string(),
-		email: string(),  // ← EMAIL
 	}),
 });
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
+		// This top section is just for demo purposes. In a real setup another
+		// application would redirect the user to this Worker to be authenticated,
+		// and after signing in or registering the user would be redirected back to
+		// the application they came from. In our demo setup there is no other
+		// application, so this Worker needs to do the initial redirect and handle
+		// the callback redirect on completion.
 		const url = new URL(request.url);
-		
-		// Redirects Demo Version
 		if (url.pathname === "/") {
 			url.searchParams.set("redirect_uri", url.origin + "/callback");
-			url.searchParams.set("client_id", "id-readtalk");  // ← Change
+			url.searchParams.set("client_id", "your-client-id");
 			url.searchParams.set("response_type", "code");
 			url.pathname = "/authorize";
 			return Response.redirect(url.toString());
@@ -31,29 +36,21 @@ export default {
 			});
 		}
 
+		// The real OpenAuth server code starts here:
 		return issuer({
 			storage: CloudflareStorage({
 				namespace: env.AUTH_STORAGE,
 			}),
-			subjects,  // ← SUBJECTS UPDATE
-			
-			// CLIENT CONFIGURATION
-			clients: [{
-				id: "id-readtalk",
-				name: "READTalk PWA",
-				redirectUris: [
-					"https://id-readtalk.pages.dev/callback",
-					"http://localhost:5173/callback"
-				],
-				grantTypes: ["authorization_code"],
-				responseTypes: ["code"]
-			}],
-			
+			subjects,
 			providers: {
 				password: PasswordProvider(
 					PasswordUI({
+						// eslint-disable-next-line @typescript-eslint/require-await
 						sendCode: async (email, code) => {
-							console.log(`🔐 Login code for ${email}: ${code}`);
+							// This is where you would email the verification code to the
+							// user, e.g. using Resend:
+							// https://resend.com/docs/send-with-cloudflare-workers
+							console.log(`Sending code ${code} to ${email}`);
 						},
 						copy: {
 							input_code: "Code (check Worker logs)",
@@ -67,16 +64,13 @@ export default {
 				favicon: "https://id-readtalk.pages.dev/vite.svg",
 				logo: {
 					dark: "https://id-readtalk.pages.dev/vite.svg",
-					light: "https://id-readtalk.pages.dev/vite.svg",
+					light:
+						"https://id-readtalk.pages.dev/vite.svg",
 				},
 			},
-			
-			// INCLUDE EMAIL CALLBACK
 			success: async (ctx, value) => {
-				const userId = await getOrCreateUser(env, value.email);
 				return ctx.subject("user", {
-					id: userId,
-					email: value.email,  // ← EMAIL
+					id: await getOrCreateUser(env, value.email),
 				});
 			},
 		}).fetch(request, env, ctx);
@@ -94,11 +88,9 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
 	)
 		.bind(email)
 		.first<{ id: string }>();
-	
 	if (!result) {
 		throw new Error(`Unable to process user: ${email}`);
 	}
-	
 	console.log(`Found or created user ${result.id} with email ${email}`);
 	return result.id;
 }
