@@ -3,10 +3,7 @@
   "main": "src/index.ts",
   "name": "openauth",
   "upload_source_maps": true,
-
-  "vars": {
-    "AUTH_CALLBACK": "/authorize"
-  },
+  
 
   "kv_namespaces": [
     {
