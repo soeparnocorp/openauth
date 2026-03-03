@@ -60,7 +60,7 @@ export default {
 			},
 			theme: {
 				title: "READTalk OpenAuth",
-				primary: "#ff000000",
+				primary: "#ff0000",
 				favicon: "https://id-readtalk.pages.dev/vite.svg",
 				logo: {
 					dark: "https://id-readtalk.pages.dev/vite.svg",
