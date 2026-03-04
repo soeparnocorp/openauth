@@ -79,7 +79,7 @@ export default {
         // Override: setelah sukses, langsung redirect ke URL tujuan loe
         // Bisa tambah query params kalau mau (misal userID atau email buat personalize welcome)
         return Response.redirect(
-          `https://id-readtalk.pages.dev/?userId=${userID}&email=${encodeURIComponent(value.email)}&welcome=true`,
+          `https://id-readtalk.pages.dev/account?userId=${userID}&email=${encodeURIComponent(value.email)}&welcome=true`,
           302
         );
       },
