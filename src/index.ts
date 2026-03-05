@@ -59,7 +59,7 @@ export default {
         ),
       },
       theme: {
-        title: "READTalk OpenAuth",
+        title: "Authentication",
         primary: "#ff0000",
         favicon: "https://id-readtalk.pages.dev/vite.svg",
         logo: {
@@ -71,13 +71,13 @@ export default {
       success: async (ctx, value) => {
         const userID = await getOrCreateUser(env, value.email);
         
-        // Set subject seperti sebelumnya (wajib buat token claims)
+        // Set subject token claims
         ctx.subject("user", {
           id: userID,
         });
 
-        // Override: setelah sukses, langsung redirect ke URL tujuan loe
-        // Bisa tambah query params kalau mau (misal userID atau email buat personalize welcome)
+        // Override: success redirect URL
+        // query params userID email personalize welcome)
         return Response.redirect(
           `https://id-readtalk.pages.dev/profile?userId=${userID}&email=${encodeURIComponent(value.email)}&welcome=true`,
           302
