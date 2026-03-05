@@ -1,7 +1,7 @@
 {
-  "short_name": "OpenAuth",
-  "name": "OpenAuth",
-  "description": "Open Authentication",
+  "short_name": "READTalk",
+  "name": "READTalk Authentication",
+  "description": "OpenAuth",
   "icons": [
     {
       "src": "/192.svg",
