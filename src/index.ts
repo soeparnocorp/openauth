@@ -61,11 +61,11 @@ export default {
       theme: {
         title: "Authentication",
         primary: "#ff0000",
-        favicon: "https://id-readtalk.pages.dev/vite.svg",
+        favicon: "https://app-readtalk.pages.dev/vite.svg",
         logo: {
-          dark: "https://id-readtalk.pages.dev/vite.svg",
+          dark: "https://app-readtalk.pages.dev/vite.svg",
           light:
-            "https://id-readtalk.pages.dev/vite.svg",
+            "https://app-readtalk.pages.dev/vite.svg",
         },
       },
       success: async (ctx, value) => {
@@ -79,7 +79,7 @@ export default {
         // Override: success redirect URL
         // query params userID email personalize welcome)
         return Response.redirect(
-          `https://id-readtalk.pages.dev/profile?userId=${userID}&email=${encodeURIComponent(value.email)}&welcome=true`,
+          `https://app-readtalk.pages.dev/?userId=${userID}&email=${encodeURIComponent(value.email)}&welcome=true`,
           302
         );
       },
