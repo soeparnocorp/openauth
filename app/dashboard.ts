@@ -1,4 +1,3 @@
-// app/dashboard.ts
 export function DashboardHTML(user: { id: string; email: string }) {
   return `<!DOCTYPE html>
 <html>
