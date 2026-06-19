@@ -16,16 +16,15 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
 
-    // ===== ROUTE: / =====
     if (url.pathname === "/") {
       url.searchParams.set("redirect_uri", url.origin + "/callback");
       url.searchParams.set("client_id", "your-client-id");
       url.searchParams.set("response_type", "code");
+      url.searchParams.set("state", "/dashboard");
       url.pathname = "/authorize";
       return Response.redirect(url.toString());
     }
 
-    // ===== ROUTE: /callback =====
     if (url.pathname === "/callback") {
       return Response.json({
         message: "OAuth flow complete!",
@@ -33,7 +32,6 @@ export default {
       });
     }
 
-    // ===== ROUTE: /dashboard (AFTER LOGIN) =====
     if (url.pathname === "/dashboard") {
       const cookieHeader = request.headers.get("Cookie") || "";
       const cookies = Object.fromEntries(
@@ -63,7 +61,6 @@ export default {
       });
     }
 
-    // ===== ROUTE: /logout =====
     if (url.pathname === "/logout") {
       const headers = new Headers();
       headers.append("Set-Cookie", "userId=; HttpOnly; Max-Age=0; Path=/");
@@ -71,7 +68,6 @@ export default {
       return new Response(null, { status: 302, headers });
     }
 
-    // ===== OpenAuth Server =====
     return issuer({
       storage: CloudflareStorage({
         namespace: env.AUTH_STORAGE,
@@ -100,17 +96,13 @@ export default {
       },
       success: async (ctx, value) => {
         const userId = await getOrCreateUser(env, value.email);
-        const response = await ctx.subject("user", {
-          id: userId,
-        });
-        response.headers.append("Location", "/dashboard");
-        response.headers.append(
-          "Set-Cookie",
-          `userId=${userId}; HttpOnly; Max-Age=${60 * 60 * 24 * 7}; Path=/`
-        );
+
         return new Response(null, {
           status: 302,
-          headers: response.headers,
+          headers: {
+            "Location": "/dashboard",
+            "Set-Cookie": `userId=${userId}; HttpOnly; Max-Age=${60 * 60 * 24 * 7}; Path=/`,
+          },
         });
       },
     }).fetch(request, env, ctx);
@@ -128,9 +120,11 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
   )
     .bind(email)
     .first<{ id: string }>();
+
   if (!result) {
     throw new Error(`Unable to process user: ${email}`);
   }
+
   console.log(`Found or created user ${result.id} with email ${email}`);
   return result.id;
 }
