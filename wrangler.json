@@ -8,14 +8,14 @@
   "kv_namespaces": [
     {
       "binding": "AUTH_STORAGE",
-      "id": "13a468e30cc84fe58ff6297d799050f2"
+      "id": "12b393be34f444de84d0afebb00d8f53"
     }
   ],
   "d1_databases": [
     {
       "binding": "AUTH_DB",
-      "database_name": "readtalk_db",
-      "database_id": "ff653b9c-4e2c-479d-8aa4-497da62de3c5"
+      "database_name": "read-talk-d1",
+      "database_id": "6533dda3-5555-4e33-b990-f23757e5521f"
     }
   ],
   "observability": {
