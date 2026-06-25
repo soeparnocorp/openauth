@@ -88,10 +88,10 @@ export default {
       theme: {
         title: "READTalk OpenAuth",
         primary: "#ff0000",
-        favicon: "https://id-readtalk.pages.dev/vite.svg",
+        favicon: "#",
         logo: {
-          dark: "https://id-readtalk.pages.dev/vite.svg",
-          light: "https://id-readtalk.pages.dev/vite.svg",
+          dark: "#",
+          light: "#",
         },
       },
       success: async (ctx, value) => {
