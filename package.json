@@ -1,6 +1,6 @@
 {
-	"name": "app",
-	"description": "Deploy an OpenAuth server on Cloudflare Workers.",
+	"name": "auth",
+	"description": "OpenAuth server on Cloudflare Workers.",
 	"cloudflare": {
 		"label": "OpenAuth Server",
 		"products": [
